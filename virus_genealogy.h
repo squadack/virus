@@ -35,7 +35,7 @@ class VirusGenealogy {
   // Zgłasza wyjątek VirusNotFound, jeśli dany wirus nie istnieje.
   std::vector<id_type> get_children(id_type const &id) { // TODO dodać const!!
     if(!elements.count(id))throw VirusNotFound();
-    return vector<id_type>(childrens[id].begin(), childrens[id].end());
+    return vector<id_type>(childrens[id].cbegin(), childrens[id].cend());
   }
 
   // Zwraca listę identyfikatorów bezpośrednich poprzedników wirusa
@@ -43,7 +43,7 @@ class VirusGenealogy {
   // Zgłasza wyjątek VirusNotFound, jeśli dany wirus nie istnieje.
   std::vector<id_type> get_parents(id_type const &id) { //TODO dodać const!!
     if(!elements.count(id))throw VirusNotFound();
-    return vector<id_type>(parents[id].begin(), parents[id].end());
+    return vector<id_type>(parents[id].cbegin(), parents[id].cend());
   }
 
   // Sprawdza, czy wirus o podanym identyfikatorze istnieje.
