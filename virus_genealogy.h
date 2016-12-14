@@ -3,19 +3,18 @@
 #include<map>
 #include<set>
 #include<vector>
-using namespace std;//pewnie usunąć
 
-class VirusNotFound : public exception { }; // TODO wypisanie błędu
-class VirusAlreadyCreated : public exception { };
-class TriedToRemoveStemVirus : public exception { };
+class VirusNotFound : public std::exception { }; // TODO wypisanie błędu
+class VirusAlreadyCreated : public std::exception { };
+class TriedToRemoveStemVirus : public std::exception { };
 
 template <class Virus>
 class VirusGenealogy {
   typedef typename Virus::id_type id_type;
   id_type stem_id;
-  map<id_type, set<id_type>> childrens;
-  map<id_type, set<id_type>> parents;
-  map<id_type, Virus> elements;
+  std::map<id_type, std::set<id_type>> childrens;
+  std::map<id_type, std::set<id_type>> parents;
+  std::map<id_type, Virus> elements;
 
   public:
   // Tworzy nową genealogię.
@@ -35,7 +34,7 @@ class VirusGenealogy {
   // Zgłasza wyjątek VirusNotFound, jeśli dany wirus nie istnieje.
   std::vector<id_type> get_children(id_type const &id) { // TODO dodać const!!
     if(!elements.count(id))throw VirusNotFound();
-    return vector<id_type>(childrens[id].cbegin(), childrens[id].cend());
+    return std::vector<id_type>(childrens[id].cbegin(), childrens[id].cend());
   }
 
   // Zwraca listę identyfikatorów bezpośrednich poprzedników wirusa
@@ -43,7 +42,7 @@ class VirusGenealogy {
   // Zgłasza wyjątek VirusNotFound, jeśli dany wirus nie istnieje.
   std::vector<id_type> get_parents(id_type const &id) { //TODO dodać const!!
     if(!elements.count(id))throw VirusNotFound();
-    return vector<id_type>(parents[id].cbegin(), parents[id].cend());
+    return std::vector<id_type>(parents[id].cbegin(), parents[id].cend());
   }
 
   // Sprawdza, czy wirus o podanym identyfikatorze istnieje.
@@ -77,7 +76,7 @@ class VirusGenealogy {
   }
 
   void create(id_type const &id, id_type const &parent_id) {
-      create(id, vector<id_type>({parent_id}));
+      create(id, std::vector<id_type>({parent_id}));
   }
 
   // Dodaje nową krawędź w grafie genealogii.
@@ -102,7 +101,7 @@ class VirusGenealogy {
         childrens[it].erase(id);
     }
     
-    vector<id_type> childs(childrens[id].begin(), childrens[id].end());
+    std::vector<id_type> childs(childrens[id].begin(), childrens[id].end());
     for(auto it : childs) {
       parents[it].erase(id);
       if(parents[it].size() == 0)
