@@ -25,6 +25,9 @@ template <class Virus>
 class VirusGenealogy {
 	typedef typename Virus::id_type id_type;
 	id_type stem_id;
+	//NOTE moja propozycja organizacji danych 
+// 	std::map<id_type, std::map<id_type, std::shared_ptr<Virus> > > children;
+// 	std::map<id_type, std::map<id_type, std::weak_ptr<Virus> > > parents;
 	std::map<id_type, std::set<id_type>> childrens;
 	std::map<id_type, std::set<id_type>> parents;
 	std::map<id_type, Virus> elements;
@@ -81,11 +84,11 @@ public:
 	// id już istnieje.
 	// Zgłasza wyjątek VirusNotFound, jeśli któryś z wyspecyfikowanych
 	// poprzedników nie istnieje.
-	void create(id_type const &id, std::vector<id_type> const &parent_ids) {
+	void create(id_type const &id, std::vector<id_type> const &parent_ids) { //TODO jeżeli wektor podany nie zawiera nic to VirusNotFound
 		if (elements.count(id))
 			throw VirusAlreadyCreated();
 		elements[id] = Virus(id);
-		for (auto it : parent_ids) {
+		for (auto it : parent_ids) { //TODO rozdzielic to tak, żeby najpierw sprawdzic istnienie wszystkich, żeby nie trzeba było rollbacku robic
 			if (!elements.count(it))
 				throw VirusNotFound();
 			childrens[it].insert(id);
