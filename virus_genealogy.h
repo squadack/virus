@@ -4,9 +4,22 @@
 #include<set>
 #include<vector>
 
-class VirusNotFound : public std::exception { }; // TODO wypisanie błędu
-class VirusAlreadyCreated : public std::exception { };
-class TriedToRemoveStemVirus : public std::exception { };
+class VirusNotFound : public std::exception {
+	const char* what() const throw() {
+		return "VirusNotFound";
+	}
+};
+
+class VirusAlreadyCreated : public std::exception {
+	const char* what() const throw() {
+		return "VirusAlreadyCreated";
+	}
+};
+class TriedToRemoveStemVirus : public std::exception {
+	const char* what() const throw() {
+		return "TriedToRemoveStemVirus";
+	}
+};
 
 template <class Virus>
 class VirusGenealogy {
