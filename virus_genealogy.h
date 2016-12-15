@@ -71,7 +71,7 @@ public:
 		std::vector<id_type> vec;
 		Node* p = genealogy.at(id);
 			for (auto it = p->children.cbegin(); it != p->children.cend(); it++)
-				vec.push_back(it->virus.get_id());
+				vec.push_back((*it)->virus.get_id());
 		return vec;
 		
 	}
@@ -85,7 +85,7 @@ public:
 		std::vector<id_type> vec;
 		Node* p = genealogy.at(id);
 			for (auto it = p->parents.cbegin(); it != p->parents.cend(); it++)
-				vec.push_back(it->virus.get_id());
+				vec.push_back((*it)->virus.get_id());
 		return vec;
 		
 	}
@@ -162,7 +162,7 @@ public:
 		
 		std::shared_ptr<Node> sh_id = genealogy.at(id)->shared_from_this();
 		for (auto it : sh_id->parents)
-			p->children.erase(sh_id);
+			it->children.erase(sh_id);
 	}
 };
 
