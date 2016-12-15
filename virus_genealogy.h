@@ -24,7 +24,6 @@ class TriedToRemoveStemVirus : public std::exception {
 };
 
 
-//TODO lock na weak ptrach, żeby sie kompilowało
 template <class Virus>
 class VirusGenealogy {
 	typedef typename Virus::id_type id_type;
@@ -33,7 +32,7 @@ class VirusGenealogy {
 		VirusGenealogy* vir_gen;
 		Virus virus;
 		std::map<id_type, Node*>* genmap;
-	$	std::set< std::shared_ptr<Node> > children;
+		std::set< std::shared_ptr<Node> > children;
 		std::set<Node*> parents;
 
 		Node(id_type const &id, std::map<id_type, Node*>* gm) : virus(id), genmap(gm) {
@@ -70,9 +69,9 @@ public:
 		if (!genealogy.count(id))
 			throw VirusNotFound();
 		std::vector<id_type> vec;
-// 			for (auto it = p->children.cbegin(); it != p->children.cend(); it++)
-// 				vec.push_back((*it).first);
-// 			return vec;
+		Node* p = genealogy.at(id);
+			for (auto it = p->children.cbegin(); it != p->children.cend(); it++)
+				vec.push_back(it->virus.get_id());
 		return vec;
 		
 	}
@@ -84,8 +83,9 @@ public:
 		if (!genealogy.count(id))
 			throw VirusNotFound();
 		std::vector<id_type> vec;
-// 			for (auto it = p->parents.cbegin(); it != p->parents.cend(); it++)
-// 				vec.push_back((*it).first);
+		Node* p = genealogy.at(id);
+			for (auto it = p->parents.cbegin(); it != p->parents.cend(); it++)
+				vec.push_back(it->virus.get_id());
 		return vec;
 		
 	}
