@@ -48,7 +48,6 @@ class VirusGenealogy {
 	std::shared_ptr<Node> stem;
 	std::map<id_type, Node*> genealogy;
 
-  VirusGenealogy operator=(VirusGenealogy _) {}
 	VirusGenealogy(VirusGenealogy &old) {
 	  stem = old.stem;
 	  genealogy = old.genealogy;
@@ -56,7 +55,7 @@ class VirusGenealogy {
 
 public:
 
-//	VirusGenealogy operator=(VirusGenealogy _) = delete;
+	VirusGenealogy operator=(VirusGenealogy _) = delete;
 //	VirusGenealogy(VirusGenealogy &_) = delete;
 
 	// Tworzy nową genealogię.
