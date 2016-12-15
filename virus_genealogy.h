@@ -116,7 +116,10 @@ public:
 	Virus& operator[](id_type const &id) const {
 		if (!genealogy.count(id))
 			throw VirusNotFound();
-		return *genealogy.at(id)->virus;
+		
+		auto p = genealogy.at(id).lock();
+// 		if (lock sie nie udal) //TODO
+			return p->virus;
 	}
 
 	// Tworzy węzeł reprezentujący nowy wirus o identyfikatorze id
@@ -181,9 +184,12 @@ public:
 		if (id == stem->virus.get_id())
 			throw TriedToRemoveStemVirus();
 		
-		std::weak_ptr<Node> node = genealogy.at(id);
+		auto node = genealogy.at(id).lock();
+		//TODO if jeśli lock sie nie udal
 		for (auto it : node->parents) {
-			it->second->children.erase(id);
+			auto p = it.second.lock();
+			//TODO if jeśli lock sie nie udal
+			p->children.erase(id);
 		}
 		/*
 		
