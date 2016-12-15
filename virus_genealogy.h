@@ -3,6 +3,7 @@
 #include<map>
 #include<set>
 #include<vector>
+#include <memory>
 
 class VirusNotFound : public std::exception {
 	const char* what() const noexcept {
@@ -24,59 +25,63 @@ class TriedToRemoveStemVirus : public std::exception {
 template <class Virus>
 class VirusGenealogy {
 	typedef typename Virus::id_type id_type;
-	id_type stem_id;
-	//NOTE moja propozycja organizacji danych 
-// 	std::map<id_type, std::map<id_type, std::shared_ptr<Virus> > > children;
-// 	std::map<id_type, std::map<id_type, std::weak_ptr<Virus> > > parents;
-//	std::map<id_type, std::weak_ptr<Virus> > elements;
-	std::map<id_type, std::set<id_type>> childrens;
-	std::map<id_type, std::set<id_type>> parents;
-	std::map<id_type, Virus> elements;
+	
+	class Node {
+// 		std::weak_ptr<VirusGenealogy> genealogy;
+		std::unique_ptr<Virus> virus;
+		std::map<id_type, std::shared_ptr<Node> > children;
+		std::map<id_type, std::weak_ptr<Node> > parents;
+	public:
+		Node(id_type const &id) : virus(new Virus(id)) {}
+	};
+	
+	std::shared_ptr<Node> stem;
+	std::map<id_type, std::weak_ptr<Node> > genealogy;
 
 public:
 	// Tworzy nową genealogię.
 	// Tworzy także węzeł wirusa macierzystego o identyfikatorze stem_id.
-	VirusGenealogy(id_type const &stem_id) {
-		this->stem_id = stem_id;
-		elements[stem_id] = Virus(stem_id);
+	VirusGenealogy(id_type const &stem_id)
+		: stem(new Node(stem_id)) {
+		genealogy.insert(make_pair(stem_id, stem));
 	}
 
-	// Zwraca identyfikator wirusa macierzystego.
+	// Zwraca identyfikator wirusa macierzystego.	
 	id_type get_stem_id() const {
-		return stem_id;
+		return stem->virus->get_id();
 	}
-
+	
 	// Zwraca listę identyfikatorów bezpośrednich następników wirusa
 	// o podanym identyfikatorze.
 	// Zgłasza wyjątek VirusNotFound, jeśli dany wirus nie istnieje.
-	std::vector<id_type> get_children(id_type const &id) { // TODO dodać const!!
-		if (!elements.count(id))
+	std::vector<id_type> get_children(id_type const &id) const {
+		if (!genealogy.count(id))
 			throw VirusNotFound();
-		return std::vector<id_type>(childrens[id].cbegin(), childrens[id].cend());
+		return std::vector<id_type>(genealogy.at(id)->children.cbegin(), genealogy.at(id)->children.cend()); //NOTE Squadack: zastanowić sie czy nie da sie tego ladniej
 	}
 
 	// Zwraca listę identyfikatorów bezpośrednich poprzedników wirusa
 	// o podanym identyfikatorze.
 	// Zgłasza wyjątek VirusNotFound, jeśli dany wirus nie istnieje.
-	std::vector<id_type> get_parents(id_type const &id) { //TODO dodać const!!
-		if (!elements.count(id))
+	std::vector<id_type> get_parents(id_type const &id) const {
+		if (!genealogy.count(id))
 			throw VirusNotFound();
-		return std::vector<id_type>(parents[id].cbegin(), parents[id].cend());
+		return std::vector<id_type>(genealogy.at(id)->parents.cbegin(), genealogy.at(id)->parents.cend()); //NOTE Squadack: zastanowić sie czy nie da sie tego ladniej
 	}
 
 	// Sprawdza, czy wirus o podanym identyfikatorze istnieje.
 	bool exists(id_type const &id) const {
-		return elements.count(id);
+		return genealogy.count(id);
 	}
 
 	// Zwraca referencję do obiektu reprezentującego wirus o podanym
 	// identyfikatorze.
 	// Zgłasza wyjątek VirusNotFound, jeśli żądany wirus nie istnieje.
-	Virus& operator[](id_type const &id) { // TODO dodać const
-		if (!elements.count(id))
-			throw VirusNotFound();
-		return elements[id];
-	}
+	Virus& operator[](id_type const &id) const {
+	if (!genealogy.count(id))
+		throw VirusNotFound();
+	return *genealogy.at(id)->virus;
+}
 
 	// Tworzy węzeł reprezentujący nowy wirus o identyfikatorze id
 	// powstały z wirusów o podanym identyfikatorze parent_id lub
@@ -85,15 +90,21 @@ public:
 	// id już istnieje.
 	// Zgłasza wyjątek VirusNotFound, jeśli któryś z wyspecyfikowanych
 	// poprzedników nie istnieje.
-	void create(id_type const &id, std::vector<id_type> const &parent_ids) { //TODO jeżeli wektor podany nie zawiera nic to VirusNotFound
-		if (elements.count(id))
+	void create(id_type const &id, std::vector<id_type> const &parent_ids) {
+		if (parent_ids.empty())
+			throw VirusNotFound();
+		if (genealogy.count(id))
 			throw VirusAlreadyCreated();
-		elements[id] = Virus(id);
-		for (auto it : parent_ids) { //TODO rozdzielic to tak, żeby najpierw sprawdzic istnienie wszystkich, żeby nie trzeba było rollbacku robic
-			if (!elements.count(it))
+		for (auto it : parent_ids)
+			if (!genealogy.count(it))
 				throw VirusNotFound();
-			childrens[it].insert(id);
-			parents[id].insert(it);
+
+		std::shared_ptr<Node> sp_node(new Node(id));
+		genealogy.insert(make_pair(id, sp_node));
+
+		for (auto it : parent_ids) {
+			genealogy.at(it)->children.insert(id, sp_node);
+			genealogy.at(id)->parents.insert(it, genealogy.at(it));
 		}
 	}
 
@@ -104,14 +115,19 @@ public:
 	// Dodaje nową krawędź w grafie genealogii.
 	// Zgłasza wyjątek VirusNotFound, jeśli któryś z podanych wirusów nie istnieje.
 	void connect(id_type const &child_id, id_type const &parent_id) {
-		if (!elements.count(child_id))
+		if (!genealogy.count(child_id))
 			throw VirusNotFound();
-		if (!elements.count(parent_id))
+		if (!genealogy.count(parent_id))
 			throw VirusNotFound();
-		childrens[parent_id].insert(child_id);
-		parents[child_id].insert(parent_id);
+
+		std::weak_ptr<Node> parent_node = genealogy.at(parent_id);
+		std::weak_ptr<Node> child_node = genealogy.at(child_id);
+		
+		parent_node->children.insert(child_id, child_node);
+		child_node->parents.insert(parent_id, parent_node);
 	}
 
+	/*
 	// Usuwa wirus o podanym identyfikatorze.
 	// Zgłasza wyjątek VirusNotFound, jeśli żądany wirus nie istnieje.
 	// Zgłasza wyjątek TriedToRemoveStemVirus przy próbie usunięcia
@@ -125,7 +141,7 @@ public:
 			if(childrens[it].count(id))
 				childrens[it].erase(id);
 		}
-    
+
 		std::vector<id_type> childs(childrens[id].begin(), childrens[id].end());
 		for (auto it : childs) {
 			parents[it].erase(id);
@@ -137,5 +153,8 @@ public:
 		parents.erase(id);
 		childrens.erase(id);
 	}
+	*/
 };
+
+
 #endif
