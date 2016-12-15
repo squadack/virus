@@ -36,20 +36,20 @@ class VirusGenealogy {
 		std::set< std::shared_ptr<Node> > children;
 		std::set<Node*> parents;
 
-		Node(id_type const &id, std::map<id_type, Node*>* gm) : virus(id), genmap(gm) {
-			auto tmp = genmap->emplace(id, this);
-			elem_position = tmp.first;
-		}
+		Node(id_type const &id, std::map<id_type, Node*>* gm) : virus(id), genmap(gm) , elem_position(genmap->emplace(id, this).first) {}
+//			auto tmp = genmap->emplace(id, this);
+//			elem_position = tmp.first;
+//		}
 		~Node() {
 			for (auto it : children)
 				it->parents.erase(this);
 			genmap->erase(elem_position);
 		}
 	};
-	
-	std::shared_ptr<Node> stem;
+
 	std::map<id_type, Node*> genealogy;
-	
+	std::shared_ptr<Node> stem;
+
   VirusGenealogy(VirusGenealogy &old) {
     stem = old.stem;
     genealogy = old.genealogy;
@@ -58,6 +58,7 @@ class VirusGenealogy {
   VirusGenealogy operator=(VirusGenealogy &old) {
       this->stem = old.stem;
       this->genealogy = old.genealogy;
+      return *this;
   }
 
 public:
@@ -66,7 +67,7 @@ public:
 
 	// Tworzy nową genealogię.
 	// Tworzy także węzeł wirusa macierzystego o identyfikatorze stem_id.
-	VirusGenealogy(id_type const &stem_id) : stem(new Node(stem_id, &genealogy)) {}
+	VirusGenealogy(id_type const &stem_id) : genealogy(), stem(new Node(stem_id, &genealogy)) {}
 
 	// Zwraca identyfikator wirusa macierzystego.
 	id_type get_stem_id() const {
