@@ -78,10 +78,10 @@ public:
 	// identyfikatorze.
 	// Zgłasza wyjątek VirusNotFound, jeśli żądany wirus nie istnieje.
 	Virus& operator[](id_type const &id) const {
-	if (!genealogy.count(id))
-		throw VirusNotFound();
-	return *genealogy.at(id)->virus;
-}
+		if (!genealogy.count(id))
+			throw VirusNotFound();
+		return *genealogy.at(id)->virus;
+	}
 
 	// Tworzy węzeł reprezentujący nowy wirus o identyfikatorze id
 	// powstały z wirusów o podanym identyfikatorze parent_id lub
