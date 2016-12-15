@@ -1,9 +1,10 @@
 #ifndef VIRUS_GENEALOGY_H
 #define VIRUS_GENEALOGY_H
-#include<map>
-#include<set>
-#include<vector>
+#include <map>
+#include <set>
+#include <vector>
 #include <memory>
+#include <iostream> //do debuga
 
 class VirusNotFound : public std::exception {
 	const char* what() const noexcept {
@@ -22,17 +23,30 @@ class TriedToRemoveStemVirus : public std::exception {
 	}
 };
 
+
+//TODO lock na weak ptrach, żeby sie kompilowało
 template <class Virus>
 class VirusGenealogy {
 	typedef typename Virus::id_type id_type;
 	
-	class Node {
-// 		std::weak_ptr<VirusGenealogy> genealogy;
-		std::unique_ptr<Virus> virus;
+	class Node/* : std::enable_shared_from_this<Node>*/ {
+	public:
+		VirusGenealogy* vir_gen;
+		Virus virus;
 		std::map<id_type, std::shared_ptr<Node> > children;
 		std::map<id_type, std::weak_ptr<Node> > parents;
-	public:
-		Node(id_type const &id) : virus(new Virus(id)) {}
+
+		//TODO wykminic jak tu zrobic weak ptr czy cos
+		Node(VirusGenealogy* vgen, id_type const &id) : vir_gen(vgen), virus(id) {}
+		~Node() {
+		//NOTE dzieje sie double delete jak ten kod zostawimy - do rozkminienia
+// 			std::cout << "trololololololololo" << std::endl;
+// 			id_type id = virus.get_id();
+// 			for (auto it : children)
+// 				it.second->parents.erase(id);
+			
+// 			vir_gen->genealogy.erase(id);
+		}
 	};
 	
 	std::shared_ptr<Node> stem;
@@ -42,13 +56,15 @@ public:
 	// Tworzy nową genealogię.
 	// Tworzy także węzeł wirusa macierzystego o identyfikatorze stem_id.
 	VirusGenealogy(id_type const &stem_id)
-		: stem(new Node(stem_id)) {
-		genealogy.insert(make_pair(stem_id, stem));
+		/*: stem(new Node(this, stem_id))*/ {
+		stem.reset(new Node(this, stem_id));
+		std::weak_ptr<Node> wp = stem;
+		genealogy.emplace(stem_id, wp);
 	}
 
-	// Zwraca identyfikator wirusa macierzystego.	
+	// Zwraca identyfikator wirusa macierzystego.
 	id_type get_stem_id() const {
-		return stem->virus->get_id();
+		return stem->virus.get_id();
 	}
 	
 	// Zwraca listę identyfikatorów bezpośrednich następników wirusa
@@ -57,7 +73,15 @@ public:
 	std::vector<id_type> get_children(id_type const &id) const {
 		if (!genealogy.count(id))
 			throw VirusNotFound();
-		return std::vector<id_type>(genealogy.at(id)->children.cbegin(), genealogy.at(id)->children.cend()); //NOTE Squadack: zastanowić sie czy nie da sie tego ladniej
+		if (auto p = genealogy.at(id).lock())
+		{
+			std::vector<id_type> vec;
+			for (auto it = p->children.cbegin(); it != p->children.cend(); it++)
+				vec.push_back((*it).first);
+			return vec;
+		}
+		
+		return std::vector<id_type>();
 	}
 
 	// Zwraca listę identyfikatorów bezpośrednich poprzedników wirusa
@@ -66,7 +90,15 @@ public:
 	std::vector<id_type> get_parents(id_type const &id) const {
 		if (!genealogy.count(id))
 			throw VirusNotFound();
-		return std::vector<id_type>(genealogy.at(id)->parents.cbegin(), genealogy.at(id)->parents.cend()); //NOTE Squadack: zastanowić sie czy nie da sie tego ladniej
+		if (auto p = genealogy.at(id).lock())
+		{
+			std::vector<id_type> vec;
+			for (auto it = p->parents.cbegin(); it != p->parents.cend(); it++)
+				vec.push_back((*it).first);
+			return vec;
+		}
+		
+		return std::vector<id_type>();
 	}
 
 	// Sprawdza, czy wirus o podanym identyfikatorze istnieje.
@@ -99,12 +131,14 @@ public:
 			if (!genealogy.count(it))
 				throw VirusNotFound();
 
-		std::shared_ptr<Node> sp_node(new Node(id));
+		std::shared_ptr<Node> sp_node(new Node(this, id));
 		genealogy.insert(make_pair(id, sp_node));
 
 		for (auto it : parent_ids) {
-			genealogy.at(it)->children.insert(id, sp_node);
-			genealogy.at(id)->parents.insert(it, genealogy.at(it));
+			if (auto p = genealogy.at(it).lock()) {
+				p->children.emplace(id, sp_node);
+				p->parents.emplace(it, genealogy.at(it));
+			} //TODO co jesli nie pyknie
 		}
 	}
 
@@ -120,28 +154,36 @@ public:
 		if (!genealogy.count(parent_id))
 			throw VirusNotFound();
 
-		std::weak_ptr<Node> parent_node = genealogy.at(parent_id);
-		std::weak_ptr<Node> child_node = genealogy.at(child_id);
+		auto parent_node = genealogy.at(parent_id).lock();
+		auto child_node = genealogy.at(child_id).lock();
 		
-		parent_node->children.insert(child_id, child_node);
-		child_node->parents.insert(parent_id, parent_node);
+// 		if (oba locki sie udaly) //TODO
+		{
+			parent_node->children.emplace(child_id, child_node);
+			child_node->parents.emplace(parent_id, parent_node);
+		}
 	}
 
-	/*
+	
 	// Usuwa wirus o podanym identyfikatorze.
 	// Zgłasza wyjątek VirusNotFound, jeśli żądany wirus nie istnieje.
 	// Zgłasza wyjątek TriedToRemoveStemVirus przy próbie usunięcia
 	// wirusa macierzystego.
 	void remove(id_type const &id) {
-		if (!elements.count(id))
+// 		dla kazdego parenta usunac id z mapy dzieci
+// 		wtedy polecą wszystkie shared pointery i reszta spada w ręce destruktora
+		if (!genealogy.count(id))
 			throw VirusNotFound();
-		if (id == stem_id)
+		if (id == stem->virus.get_id())
 			throw TriedToRemoveStemVirus();
-		for (auto it : parents[id]) {
-			if(childrens[it].count(id))
-				childrens[it].erase(id);
+		
+		std::weak_ptr<Node> node = genealogy.at(id);
+		for (auto it : node->parents) {
+			it->second->children.erase(id);
 		}
-
+		/*
+		
+		
 		std::vector<id_type> childs(childrens[id].begin(), childrens[id].end());
 		for (auto it : childs) {
 			parents[it].erase(id);
@@ -152,8 +194,9 @@ public:
 		elements.erase(id);
 		parents.erase(id);
 		childrens.erase(id);
+		*/
 	}
-	*/
+	
 };
 
 
