@@ -39,6 +39,10 @@ class VirusGenealogy {
 	std::map<id_type, std::weak_ptr<Node> > genealogy;
 
 public:
+
+  VirusGenealogy operator=(VirusGenealogy _) = delete;
+  VirusGenealogy(VirusGenealogy &_) = delete;
+
 	// Tworzy nową genealogię.
 	// Tworzy także węzeł wirusa macierzystego o identyfikatorze stem_id.
 	VirusGenealogy(id_type const &stem_id)
