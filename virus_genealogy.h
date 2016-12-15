@@ -32,12 +32,12 @@ class VirusGenealogy {
 		VirusGenealogy* vir_gen;
 		Virus virus;
 		std::map<id_type, Node*>* genmap;
-		std::map<id_type, Node*>::iterator elem_position;
+		typename std::map<id_type, Node*>::iterator elem_position;
 		std::set< std::shared_ptr<Node> > children;
 		std::set<Node*> parents;
 
 		Node(id_type const &id, std::map<id_type, Node*>* gm) : virus(id), genmap(gm) {
-			auto tmp = genmap.emplace(id, this);
+			auto tmp = genmap->emplace(id, this);
 			elem_position = tmp.first;
 		}
 		~Node() {
