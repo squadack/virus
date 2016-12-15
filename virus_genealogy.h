@@ -49,11 +49,20 @@ class VirusGenealogy {
 	
 	std::shared_ptr<Node> stem;
 	std::map<id_type, Node*> genealogy;
+	
+  VirusGenealogy(VirusGenealogy &old) {
+    stem = old.stem;
+    genealogy = old.genealogy;
+    }
+
+  VirusGenealogy operator=(VirusGenealogy &old) {
+      this.stem = old.stem;
+      this.genealogy = old.genealogy;
+  }
 
 public:
 
-	VirusGenealogy operator=(VirusGenealogy _) = delete;
-	VirusGenealogy(VirusGenealogy &_) = delete;
+	
 
 	// Tworzy nową genealogię.
 	// Tworzy także węzeł wirusa macierzystego o identyfikatorze stem_id.
@@ -123,12 +132,18 @@ public:
 			if (!genealogy.count(it))
 				throw VirusNotFound();
 
-		std::shared_ptr<Node> sp_node(new Node(id, &genealogy));
-		for (auto it : parent_ids) {
-			Node* parent_node = genealogy.at(it);
-			sp_node->parents.insert(parent_node);
-			parent_node->children.insert(sp_node->shared_from_this());
-		}
+    VirusGenealogy copy(*this);
+    try {
+		  std::shared_ptr<Node> sp_node(new Node(id, &genealogy));
+		  for (auto it : parent_ids) {
+			  Node* parent_node = genealogy.at(it);
+			  sp_node->parents.insert(parent_node);
+			  parent_node->children.insert(sp_node->shared_from_this());
+		  }
+		} catch (...) {
+        *this = copy;
+        throw;
+    }
 	}
 
 	void create(id_type const &id, id_type const &parent_id) {
@@ -143,12 +158,18 @@ public:
 		if (!genealogy.count(parent_id))
 			throw VirusNotFound();
 
-		Node* parent_node = genealogy.at(parent_id);
-		Node* child_node = genealogy.at(child_id);
-		//TODO sprawdzic czy oba wstawienia sie udaly i w razie co wycofac
-		child_node->parents.insert(parent_node);
-// 		try
-		parent_node->children.insert(child_node->shared_from_this());
+    VirusGenealogy copy(*this);
+      try {
+		  Node* parent_node = genealogy.at(parent_id);
+		  Node* child_node = genealogy.at(child_id);
+		  //TODO sprawdzic czy oba wstawienia sie udaly i w razie co wycofac
+		  child_node->parents.insert(parent_node);
+  // 		try
+		  parent_node->children.insert(child_node->shared_from_this());
+		} catch (...) {
+        *this = copy;
+        throw;
+    }
 	}
 
 	
@@ -163,10 +184,15 @@ public:
 			throw VirusNotFound();
 		if (id == stem->virus.get_id())
 			throw TriedToRemoveStemVirus();
-		
-		std::shared_ptr<Node> sh_id = genealogy.at(id)->shared_from_this();
-		for (auto it : sh_id->parents)
-			it->children.erase(sh_id);
+		VirusGenealogy copy(*this);
+    try {
+		  std::shared_ptr<Node> sh_id = genealogy.at(id)->shared_from_this();
+		  for (auto it : sh_id->parents)
+			  it->children.erase(sh_id);
+		} catch (...) {
+        *this = copy;
+        throw;
+    }
 	}
 };
 
