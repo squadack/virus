@@ -48,10 +48,16 @@ class VirusGenealogy {
 	std::shared_ptr<Node> stem;
 	std::map<id_type, Node*> genealogy;
 
+  VirusGenealogy operator=(VirusGenealogy _) {}
+	VirusGenealogy(VirusGenealogy &old) {
+	  stem = old.stem;
+	  genealogy = old.genealogy;
+	  }
+
 public:
 
-	VirusGenealogy operator=(VirusGenealogy _) = delete;
-	VirusGenealogy(VirusGenealogy &_) = delete;
+//	VirusGenealogy operator=(VirusGenealogy _) = delete;
+//	VirusGenealogy(VirusGenealogy &_) = delete;
 
 	// Tworzy nową genealogię.
 	// Tworzy także węzeł wirusa macierzystego o identyfikatorze stem_id.
@@ -121,10 +127,15 @@ public:
 			if (!genealogy.count(it))
 				throw VirusNotFound();
 
-		std::shared_ptr<Node> sp_node(new Node(id, &genealogy));
-		//TODO, bo tu większa magia się dzieje
-// 		genealogy.insert(make_pair(id, sp_node));
-
+    VirusGenealogy copy(*this);
+    try {
+		  std::shared_ptr<Node> sp_node(new Node(id, &genealogy));
+		  //TODO, bo tu większa magia się dzieje
+  // 		genealogy.insert(make_pair(id, sp_node));
+    } catch (...) {
+        *this = copy;
+        throw;
+    }
 	}
 
 	void create(id_type const &id, id_type const &parent_id) {
@@ -139,12 +150,19 @@ public:
 		if (!genealogy.count(parent_id))
 			throw VirusNotFound();
 
+    VirusGenealogy copy(*this);
+    try {
+
 		Node* parent_node = genealogy.at(parent_id);
 		Node* child_node = genealogy.at(child_id);
 		//TODO sprawdzic czy oba wstawienia sie udaly i w razie co wycofac
 		child_node->parents.insert(parent_node);
 // 		try
 		parent_node->children.insert(child_node->shared_from_this());
+		} catch (...) {
+      *this = copy;
+      throw;
+    }
 	}
 
 	
@@ -160,9 +178,15 @@ public:
 		if (id == stem->virus.get_id())
 			throw TriedToRemoveStemVirus();
 		
-		std::shared_ptr<Node> sh_id = genealogy.at(id)->shared_from_this();
-		for (auto it : sh_id->parents)
-			it->children.erase(sh_id);
+		VirusGenealogy copy(*this);
+    try {
+		  std::shared_ptr<Node> sh_id = genealogy.at(id)->shared_from_this();
+		  for (auto it : sh_id->parents)
+			  it->children.erase(sh_id);
+	  } catch (...) {
+      *this = copy;
+      throw;
+    }
 	}
 };
 
