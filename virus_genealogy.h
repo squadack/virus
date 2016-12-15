@@ -53,11 +53,11 @@ class VirusGenealogy {
   VirusGenealogy(VirusGenealogy &old) {
     stem = old.stem;
     genealogy = old.genealogy;
-    }
+  }
 
   VirusGenealogy operator=(VirusGenealogy &old) {
-      this.stem = old.stem;
-      this.genealogy = old.genealogy;
+      this->stem = old.stem;
+      this->genealogy = old.genealogy;
   }
 
 public:
