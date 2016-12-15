@@ -5,18 +5,18 @@
 #include<vector>
 
 class VirusNotFound : public std::exception {
-	const char* what() const throw() {
+	const char* what() const noexcept {
 		return "VirusNotFound";
 	}
 };
 
 class VirusAlreadyCreated : public std::exception {
-	const char* what() const throw() {
+	const char* what() const noexcept {
 		return "VirusAlreadyCreated";
 	}
 };
 class TriedToRemoveStemVirus : public std::exception {
-	const char* what() const throw() {
+	const char* what() const noexcept {
 		return "TriedToRemoveStemVirus";
 	}
 };
@@ -28,6 +28,7 @@ class VirusGenealogy {
 	//NOTE moja propozycja organizacji danych 
 // 	std::map<id_type, std::map<id_type, std::shared_ptr<Virus> > > children;
 // 	std::map<id_type, std::map<id_type, std::weak_ptr<Virus> > > parents;
+//	std::map<id_type, std::weak_ptr<Virus> > elements;
 	std::map<id_type, std::set<id_type>> childrens;
 	std::map<id_type, std::set<id_type>> parents;
 	std::map<id_type, Virus> elements;
