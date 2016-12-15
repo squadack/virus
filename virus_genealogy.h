@@ -133,7 +133,7 @@ public:
 
 	// Dodaje nową krawędź w grafie genealogii.
 	// Zgłasza wyjątek VirusNotFound, jeśli któryś z podanych wirusów nie istnieje.
-	void connect(id_type const &child_id, id_type coqnst &parent_id) {
+	void connect(id_type const &child_id, id_type const &parent_id) {
 		if (!genealogy.count(child_id))
 			throw VirusNotFound();
 		if (!genealogy.count(parent_id))
@@ -160,10 +160,9 @@ public:
 		if (id == stem->virus.get_id())
 			throw TriedToRemoveStemVirus();
 		
-		//TODO tu coś jeszcze z shared ptrami trzeba dopisac
-		for (auto it : genealogy.at(id)->parents) {
-			p->children.erase(id);
-		}
+		std::shared_ptr<Node> sh_id = genealogy.at(id)->shared_from_this();
+		for (auto it : sh_id->parents)
+			p->children.erase(sh_id);
 	}
 };
 
