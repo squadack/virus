@@ -4,7 +4,6 @@
 #include <set>
 #include <vector>
 #include <memory>
-#include <iostream> //do debuga
 
 class VirusNotFound : public std::exception {
 	const char* what() const noexcept {
@@ -37,14 +36,11 @@ class VirusGenealogy {
 		std::set<Node*> parents;
 
 		Node(id_type const &id, std::map<id_type, Node*>* gm) : virus(id), genmap(gm) , elem_position(genmap->emplace(id, this).first) {}
-//			auto tmp = genmap->emplace(id, this);
-//			elem_position = tmp.first;
-//		}
+
 		~Node() {
 			for (auto it : children)
 				it->parents.erase(this);
 			genmap->erase(elem_position);
-			printf("erased\n");
 		}
 
 	};
@@ -52,19 +48,9 @@ class VirusGenealogy {
 	std::map<id_type, Node*> genealogy;
 	std::shared_ptr<Node> stem;
 
-  VirusGenealogy(VirusGenealogy &old) {
-    stem = old.stem;
-    genealogy = old.genealogy;
-  }
-
-  VirusGenealogy operator=(VirusGenealogy &old) {
-      this->stem = old.stem;
-      this->genealogy = old.genealogy;
-      return *this;
-  }
-
 public:
-
+	VirusGenealogy(VirusGenealogy const &) = delete;
+	VirusGenealogy &operator= (VirusGenealogy const &) = delete;
 
 	// Tworzy nową genealogię.
 	// Tworzy także węzeł wirusa macierzystego o identyfikatorze stem_id.
@@ -132,7 +118,6 @@ public:
 				throw VirusNotFound();
 
 		std::shared_ptr<Node> sp_node(new Node(id, &genealogy));
-printf("created\n");
 
 		try {
 			for (auto& it : parent_ids) {
@@ -168,11 +153,9 @@ printf("created\n");
 			parent_node->children.insert(child_node->shared_from_this());
 		} catch (...) {
 			child_node->parents.erase(parent_node);
-//			parent_node->children.erase(child_node);
 			throw;
 		}
 	}
-
 	
 	// Usuwa wirus o podanym identyfikatorze.
 	// Zgłasza wyjątek VirusNotFound, jeśli żądany wirus nie istnieje.
@@ -183,9 +166,9 @@ printf("created\n");
 			throw VirusNotFound();
 		if (id == stem->virus.get_id())
 			throw TriedToRemoveStemVirus();
-		  std::shared_ptr<Node> sh_id = genealogy.at(id)->shared_from_this();
-		  for (auto it : sh_id->parents)
-			  it->children.erase(sh_id);
+		std::shared_ptr<Node> sh_id = genealogy.at(id)->shared_from_this();
+		for (auto it : sh_id->parents)
+			it->children.erase(sh_id);
 	}
 };
 
