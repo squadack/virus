@@ -45,6 +45,7 @@ class VirusGenealogy {
 				it->parents.erase(this);
 			genmap->erase(elem_position);
 		}
+
 	};
 
 	std::map<id_type, Node*> genealogy;
@@ -133,18 +134,23 @@ public:
 			if (!genealogy.count(it))
 				throw VirusNotFound();
 
-    VirusGenealogy copy(*this);
-    try {
-		  std::shared_ptr<Node> sp_node(new Node(id, &genealogy));
-		  for (auto it : parent_ids) {
-			  Node* parent_node = genealogy.at(it);
-			  sp_node->parents.insert(parent_node);
-			  parent_node->children.insert(sp_node->shared_from_this());
-		  }
+		std::shared_ptr<Node> sp_node(new Node(id, &genealogy));
+
+//		VirusGenealogy copy(*this);
+		try {
+			for (auto& it : parent_ids) {
+				Node* parent_node = genealogy.at(it);
+				sp_node->parents.insert(parent_node);
+				parent_node->children.insert(sp_node->shared_from_this());
+			}
 		} catch (...) {
-        *this = copy;
-        throw;
-    }
+//			*this = copy;
+			for (auto& it : parent_ids) {
+				Node* parent_node = genealogy.at(it);
+				parent_node->children.erase(sp_node->shared_from_this());
+			}
+			throw;
+		}
 	}
 
 	void create(id_type const &id, id_type const &parent_id) {
@@ -163,9 +169,7 @@ public:
       try {
 		  Node* parent_node = genealogy.at(parent_id);
 		  Node* child_node = genealogy.at(child_id);
-		  //TODO sprawdzic czy oba wstawienia sie udaly i w razie co wycofac
 		  child_node->parents.insert(parent_node);
-  // 		try
 		  parent_node->children.insert(child_node->shared_from_this());
 		} catch (...) {
         *this = copy;
