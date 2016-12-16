@@ -27,7 +27,7 @@ class TriedToRemoveStemVirus : public std::exception {
 template <class Virus>
 class VirusGenealogy {
 	typedef typename Virus::id_type id_type;
-	
+
 	struct Node : std::enable_shared_from_this<Node> {
 		VirusGenealogy* vir_gen;
 		Virus virus;
@@ -44,6 +44,7 @@ class VirusGenealogy {
 			for (auto it : children)
 				it->parents.erase(this);
 			genmap->erase(elem_position);
+			printf("erased\n");
 		}
 
 	};
@@ -64,7 +65,6 @@ class VirusGenealogy {
 
 public:
 
-	
 
 	// Tworzy nową genealogię.
 	// Tworzy także węzeł wirusa macierzystego o identyfikatorze stem_id.
@@ -74,7 +74,7 @@ public:
 	id_type get_stem_id() const {
 		return stem->virus.get_id();
 	}
-	
+
 	// Zwraca listę identyfikatorów bezpośrednich następników wirusa
 	// o podanym identyfikatorze.
 	// Zgłasza wyjątek VirusNotFound, jeśli dany wirus nie istnieje.
@@ -86,7 +86,6 @@ public:
 			for (auto it = p->children.cbegin(); it != p->children.cend(); it++)
 				vec.push_back((*it)->virus.get_id());
 		return vec;
-		
 	}
 
 	// Zwraca listę identyfikatorów bezpośrednich poprzedników wirusa
@@ -100,7 +99,6 @@ public:
 			for (auto it = p->parents.cbegin(); it != p->parents.cend(); it++)
 				vec.push_back((*it)->virus.get_id());
 		return vec;
-		
 	}
 
 	// Sprawdza, czy wirus o podanym identyfikatorze istnieje.
@@ -114,8 +112,7 @@ public:
 	Virus& operator[](id_type const &id) const {
 		if (!genealogy.count(id))
 			throw VirusNotFound();
-		
-			return genealogy.at(id)->virus;
+		return genealogy.at(id)->virus;
 	}
 
 	// Tworzy węzeł reprezentujący nowy wirus o identyfikatorze id
@@ -135,8 +132,8 @@ public:
 				throw VirusNotFound();
 
 		std::shared_ptr<Node> sp_node(new Node(id, &genealogy));
+printf("created\n");
 
-//		VirusGenealogy copy(*this);
 		try {
 			for (auto& it : parent_ids) {
 				Node* parent_node = genealogy.at(it);
@@ -144,10 +141,9 @@ public:
 				parent_node->children.insert(sp_node->shared_from_this());
 			}
 		} catch (...) {
-//			*this = copy;
 			for (auto& it : parent_ids) {
 				Node* parent_node = genealogy.at(it);
-				parent_node->children.erase(sp_node->shared_from_this());
+				parent_node->children.erase(sp_node);
 			}
 			throw;
 		}
@@ -165,16 +161,16 @@ public:
 		if (!genealogy.count(parent_id))
 			throw VirusNotFound();
 
-    VirusGenealogy copy(*this);
-      try {
-		  Node* parent_node = genealogy.at(parent_id);
-		  Node* child_node = genealogy.at(child_id);
-		  child_node->parents.insert(parent_node);
-		  parent_node->children.insert(child_node->shared_from_this());
+		Node* parent_node = genealogy.at(parent_id);
+		Node* child_node = genealogy.at(child_id);
+		child_node->parents.insert(parent_node);
+		try {
+			parent_node->children.insert(child_node->shared_from_this());
 		} catch (...) {
-        *this = copy;
-        throw;
-    }
+			child_node->parents.erase(parent_node);
+//			parent_node->children.erase(child_node);
+			throw;
+		}
 	}
 
 	
@@ -183,21 +179,13 @@ public:
 	// Zgłasza wyjątek TriedToRemoveStemVirus przy próbie usunięcia
 	// wirusa macierzystego.
 	void remove(id_type const &id) {
-// 		dla kazdego parenta usunac id z mapy dzieci
-// 		wtedy polecą wszystkie shared pointery i reszta spada w ręce destruktora
 		if (!genealogy.count(id))
 			throw VirusNotFound();
 		if (id == stem->virus.get_id())
 			throw TriedToRemoveStemVirus();
-		VirusGenealogy copy(*this);
-    try {
 		  std::shared_ptr<Node> sh_id = genealogy.at(id)->shared_from_this();
 		  for (auto it : sh_id->parents)
 			  it->children.erase(sh_id);
-		} catch (...) {
-        *this = copy;
-        throw;
-    }
 	}
 };
 
